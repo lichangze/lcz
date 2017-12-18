@@ -1,0 +1,12 @@
+eclipse.preferences.version=1
+encoding//resources/ftptask.properties=UTF-8
+encoding//src/com/report/model=UTF-8
+encoding//src/com/report/model/SysMenu.java=UTF-8
+encoding//src/com/report/model/SysUser.java=UTF-8
+encoding//src/com/report/service=UTF-8
+encoding//src/com/report/service/ISysMenuService.java=UTF-8
+encoding//src/com/report/serviceimpl=UTF-8
+encoding//src/com/report/sys/action=UTF-8
+encoding//src/com/report/sys/action/SysUserController.java=UTF-8
+encoding/<project>=UTF-8
+separateDerivedEncodings=true

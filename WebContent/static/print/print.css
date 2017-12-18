@@ -1,0 +1,91 @@
+* {
+	margin: 0;
+	padding: 0;
+}
+body {
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 12px;
+}
+
+a {
+	text-decoration: none;
+}
+
+ul,li {
+	list-style: none;
+}
+
+img {
+	border: none;
+}
+
+#print-content {
+	width: 98%;
+	margin: 10px auto;
+}
+
+#print-content h1 {
+	font-size: 24px;
+	text-align: center;
+}
+
+.floatLeft {
+	float: left;
+}
+
+.floatRight {
+	float: right;
+}
+
+.headInfo {
+	margin: 5px auto;
+	height: 16px;
+}
+#headContent table {
+	border-collapse: collapse;
+	width: 100%;
+}
+#print-content table {
+	border-collapse: collapse;
+	width: 100%;
+	border: 1px solid #000;
+}
+#disText table {
+	border-collapse: collapse;
+	width: 100%;
+	border: 1px solid #000;
+}
+#disText td,th {
+	border: 1px solid #000;
+	text-align: center;
+	padding: 3px 5px;
+}
+.tableTopBorder_3 {
+	border-top: 3px solid #000;
+}
+
+#print-content td,th {
+	border: 1px solid #000;
+	text-align: center;
+	padding: 3px 5px;
+}
+
+.signatureArea {
+	height: 25px;
+	line-height: 25px;
+}
+.signatureArea .firstSpan{
+	margin-right:200px;
+}
+#print-content .header{ height:50px; position:relative;}
+#print-content .header h1{ padding-top:10px;}
+.printTm{ position:absolute; left:0px;  top:0px;}
+
+
+@media print
+{
+	.pageBreak {page-break-after:always;}
+	.noPrint{
+		display:none;
+	}
+}

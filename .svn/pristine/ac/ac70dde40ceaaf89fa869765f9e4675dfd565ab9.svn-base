@@ -1,0 +1,11 @@
+#FTPurl
+ftp.url=192.168.248.42
+ftp.post=21
+ftp.user=tadw
+ftp.pwd=123.com
+ftp.ener.path=/home/tadw
+ftp.file.path=/usr/data_datw/
+
+#FTP任务清单
+#1、能耗系统清单（ENER）
+ener=ener

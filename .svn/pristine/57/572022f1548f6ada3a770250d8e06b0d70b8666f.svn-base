@@ -1,0 +1,549 @@
+package com.bmzy.report.home;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+import java.sql.SQLException;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.bmzy.generic.core.controller.ActionBaseController;
+import com.bmzy.generic.core.support.PageBaseParameter;
+import com.bmzy.report.model.AdjustEntity;
+import com.bmzy.report.model.DailyPlanEntity;
+import com.bmzy.report.model.DeviceErrorEntity;
+import com.bmzy.report.model.NoteEntity;
+import com.bmzy.report.model.PassEngerQuantityEntity;
+import com.bmzy.report.model.SysMenu;
+import com.bmzy.report.model.SysRoleC;
+import com.bmzy.report.model.SysUser;
+import com.bmzy.report.model.SysUserRole;
+import com.bmzy.report.service.IAdjustService;
+import com.bmzy.report.service.IDailyPlanService;
+import com.bmzy.report.service.IDeviceErrorService;
+import com.bmzy.report.service.INoteService;
+import com.bmzy.report.service.IPassEngerQuantityService;
+import com.bmzy.report.service.ISysMenuService;
+import com.bmzy.report.service.ISysRoleCService;
+import com.bmzy.report.service.ISysUserRoleService;
+
+import tk.mybatis.mapper.entity.Example;
+
+@Controller
+@RequestMapping("/report")
+public class HomeController extends ActionBaseController<PageBaseParameter> {
+	private final static String ENCODE = "utf-8";
+	public final static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");// 小写的mm表示的是分钟
+	@Resource
+	private ISysUserRoleService sysUserRoleService;
+	@Resource
+	private ISysMenuService sysMenuService;
+	@Resource
+	private ISysRoleCService sysRoleCService;
+	@Resource
+	private IDailyPlanService dailyPlanService;
+	@Resource
+	private IPassEngerQuantityService passEngerQuantityService;
+	@Resource
+	private IAdjustService adjustService;
+	@Resource
+	private INoteService noteService;
+	@Resource
+	private IDeviceErrorService deviceErrorService;
+	
+	// 跳转到主页，获取菜单并授权
+	@RequestMapping("/home")
+	public ModelAndView home(HttpServletRequest request, HttpServletResponse response) {
+		SysUser sysUser1 = new SysUser();
+		sysUser1.setEmp_no("00100020");
+		sysUser1.setF_cell("13810276762");
+		sysUser1.setEmp_name("王华颖");
+		
+		
+		//sysUser.setEmail("deram@163.com");
+		/*List<SysUser> list = sysUserService.queryAll();
+		if (list.size() > 0) {
+			sysUser = list.get(0);*/
+			HttpSession session = request.getSession();
+			//System.out.println(sysUser.getUserName() + "===" + sysUser.getEmail());
+			session.setAttribute(SESSION_SYS_USER, sysUser1);
+			session.setAttribute(SESSION_SYS_USER_ID, sysUser1.getEmp_no());
+		if (request.getSession().getAttribute(SESSION_SYS_USER) == null) {
+			return new ModelAndView();
+		} else {
+			SysUser sysUser = (SysUser) request.getSession().getAttribute(SESSION_SYS_USER);
+			List<SysUserRole> sysRoleList = new ArrayList<SysUserRole>();
+			Example example = new Example(SysUserRole.class);
+			example.createCriteria().andEqualTo("userNo", sysUser.getEmp_no());
+			sysRoleList = sysUserRoleService.selectByExample(example);
+			String sysRoles = "";
+			for (SysUserRole sysRole : sysRoleList) {
+				sysRoles += sysRole.getRoleId();
+				sysRoles += ",";
+			}
+			if (sysRoles.length() != 0) {
+				sysRoles = sysRoles.substring(0, sysRoles.length() - 1);
+			}
+			String[] sysRoleLists = sysRoles.split(",");
+			/*
+			 * 获取角色数组sysRoleLists成功
+			 */
+			try {
+
+				Authentication authentication = new UsernamePasswordAuthenticationToken(sysUser.getF_cell(),
+						sysUser.getEmp_name(), AuthorityUtils.createAuthorityList(sysRoleLists));
+				SecurityContextHolder.getContext().setAuthentication(authentication);
+
+				HttpSession httpSession = request.getSession(true);
+				httpSession.setAttribute("SPRING_SECURITY_AUTHORITIES",
+						SecurityContextHolder.getContext().getAuthentication().getAuthorities());
+
+				Map<String, String> sortedCondition = new HashMap<String, String>();
+				sortedCondition.put("menuOrder", "ASC");
+				// 排序没有写
+				Example example1 = new Example(SysMenu.class);
+				example1.createCriteria().andEqualTo("modNo", "0");
+				List<SysMenu> mainMenuList = sysMenuService.selectByExample(example1);
+				List<SysRoleC> mainHaveMenuList = new ArrayList<SysRoleC>();
+				// 取出所有权限放进mainHaveMenuList
+				for (int i = 0; i < sysRoleLists.length; i++) {
+					Example example11 = new Example(SysRoleC.class);
+					example11.createCriteria().andEqualTo("rolNo", sysRoleLists[i]);
+					mainHaveMenuList.addAll(sysRoleCService.selectByExample(example11));
+				}
+				HashSet<SysRoleC> mainhave = new HashSet<SysRoleC>(mainHaveMenuList);
+				List<SysMenu> menulist = new ArrayList<SysMenu>();
+
+				for (int i = 0; i < mainMenuList.size(); i++) {
+					for (int j = 0; j < mainhave.size(); j++) {
+						if (mainMenuList.get(i).getMenuNo().equals(mainHaveMenuList.get(j).getMenuNo())) {
+							Example example11 = new Example(SysMenu.class);
+							example11.createCriteria().andEqualTo("menuNo", mainMenuList.get(i).getMenuNo());
+							menulist.add(sysMenuService.selectByExample(example11).get(0));
+						}
+					}
+				}
+				List<SysMenu> allMenuList = sysMenuService.queryAllMenuList(sysRoleLists, menulist);
+				return new ModelAndView("sys/index", "sysmenuList", allMenuList);
+			} catch (Exception e) {
+				// log.error(e.toString());
+				e.printStackTrace();
+				return new ModelAndView();
+			}
+		}
+	}
+
+	@RequestMapping(value = "/zd_mb_daypassenger", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView login(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("zd_mb_daypassenger");
+		return mav;
+	}
+	
+	@RequestMapping(value = "/bjplatform", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bjplatform(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bjplatform");
+		return mav;
+	}
+	
+	@RequestMapping(value = "/zd_mb_dayplan", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView zd_bm_dayplan(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("zd_mb_dayplan");
+		return mav;
+	}
+	@RequestMapping(value = "/getPlanData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getPlanData(HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
+		Example example = new Example(DailyPlanEntity.class);
+		example.setOrderByClause("cDate desc");
+		List<DailyPlanEntity> list = dailyPlanService.selectByExample(example);
+		writeJSON(response, sdf.format(list.get(0).getcDate()));
+	}
+	
+	@RequestMapping(value = "/zd_mb_monpassenger", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView zd_bm_monpassenger(HttpServletRequest request, HttpServletResponse response)
+			throws SQLException {
+		String line = request.getParameter("line");
+		line = getURLDecoderString(line);
+		ModelAndView mav = new ModelAndView("zd_mb_monpassenger");
+		Example example = new Example(PassEngerQuantityEntity.class);
+		example.setOrderByClause("cDate desc");
+		List<PassEngerQuantityEntity> list = passEngerQuantityService.selectByExample(example);
+		mav.addObject("line", line);
+		mav.addObject("date", sdf.format(list.get(0).getcDate()));
+		return mav;
+	}
+
+	@RequestMapping(value = "/getPassengerData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getPassengerData(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Example example = new Example(PassEngerQuantityEntity.class);
+		example.setOrderByClause("cDate desc");
+		List<PassEngerQuantityEntity> list = passEngerQuantityService.selectByExample(example);
+		writeJSON(response, sdf.format(list.get(0).getcDate()));
+	}
+
+
+	
+
+	@RequestMapping(value = "/echarts", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echarts(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/echarts");
+		return mav;
+	}
+
+	@RequestMapping(value = "/echartsbjbtn", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsbjbtn(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/echartsbjbtn");
+		return mav;
+	}
+
+	@RequestMapping(value = "/echartsbjasset", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsbjasset(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/echartsbjasset");
+		return mav;
+	}
+
+	@RequestMapping(value = "/echartsbjemp", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsbjemp(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/echartsbjemp");
+		return mav;
+	}
+
+	@RequestMapping(value = "/echartsbj", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsbj(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/echartsbj");
+		return mav;
+	}
+
+	@RequestMapping(value = "/echartsbjyl", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsbjyl(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/echartsbjyl");
+		return mav;
+	}
+	
+
+	@RequestMapping(value = "/echartsbjener", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsbjener(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/echartsbjener");
+		return mav;
+	}
+	
+	//运力大屏
+	@RequestMapping(value = "/gisbjyl", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView gisbjyl(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/gisbjyl");
+		return mav;
+	}
+	
+
+	/**
+	 * ��Լ���
+	 * 
+	 * @param request
+	 * @param response
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException
+	 */
+	@RequestMapping(value = "/bigtablesjy", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtablesjy(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/bigtablesjy");
+		return mav;
+	}
+	
+	@RequestMapping(value = "/bigoperate", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigoperate(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/bigoperate");
+		return mav;
+	}
+
+	@RequestMapping(value = "/boform", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bofrom(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/boform");
+		return mav;
+	}
+	@RequestMapping(value = "/bigtablesener", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtablesener(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/bigtablesener");
+		return mav;
+	}
+	@RequestMapping(value = "/echartsener", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsener(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/echartsener");
+		return mav;
+	}
+	@RequestMapping(value = "/bigplatformener", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigplatformener(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/bigplatformener");
+		return mav;
+	}
+	@RequestMapping(value = "/echartsbjzh", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView echartsbjzh(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/echartsbjzh");
+		return mav;
+	}
+	
+	@RequestMapping(value = "/bigtables2jy", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtables2jy(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/bigtables2jy");
+		return mav;
+	}
+
+	@RequestMapping(value = "/bigtableszh", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtableszh(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/bigtableszh");
+		return mav;
+	}
+	
+	@RequestMapping(value = "/bigtables3jy", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtables3jy(HttpServletRequest request, HttpServletResponse response)
+			throws IOException, SQLException {
+		ModelAndView mav = new ModelAndView("gis/bigtables3jy");
+		return mav;
+	}
+
+	@RequestMapping(value = "/bjplatformjy", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bjplatformjy(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bjplatformjy");
+		return mav;
+	}
+
+	 //企业门户
+	@RequestMapping(value = "/bjplatformmh", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bjplatformmh(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bjplatformmh");
+		return mav;
+	}
+	// �յ���/�µ���
+	@RequestMapping(value = "/zd_mb_dayadjust", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView zd_bm_dayadjust(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("zd_mb_dayadjust");
+		return mav;
+	}
+
+	@RequestMapping(value = "/zd_mb_monadjust", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView zd_bm_monadjust(HttpServletRequest request, HttpServletResponse response) throws SQLException {
+		String line = request.getParameter("line");
+		line = getURLDecoderString(line);
+		ModelAndView mav = new ModelAndView("zd_mb_monadjust");
+		Example example = new Example(AdjustEntity.class);
+	    example.setOrderByClause("cDate desc");
+		List<AdjustEntity> list = adjustService.selectByExample(example);
+		mav.addObject("date", sdf.format(list.get(0).getcDate()));
+		mav.addObject("line", line);
+		return mav;
+	}
+
+	@RequestMapping(value = "/getAdjustData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getAdjustData(HttpServletRequest request, HttpServletResponse response) throws IOException{
+	Example example = new Example(AdjustEntity.class);
+    example.setOrderByClause("cDate desc");
+	List<AdjustEntity> list = adjustService.selectByExample(example);
+	writeJSON(response, sdf.format(list.get(0).getcDate()));
+	
+	}
+
+	// �ն��֣��¶���
+
+
+	@RequestMapping(value = "/zd_mb_monplan", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView zd_bm_monplan(HttpServletRequest request, HttpServletResponse response) throws SQLException {
+		String line = request.getParameter("line");
+		line = getURLDecoderString(line);
+		ModelAndView mav = new ModelAndView("zd_mb_monplan");
+		Example example = new Example(DailyPlanEntity.class);
+		example.setOrderByClause("cDate desc");
+		List<DailyPlanEntity> list = dailyPlanService.selectByExample(example);
+		mav.addObject("line", line);
+		mav.addObject("date", sdf.format(list.get(0).getcDate()));
+		return mav;
+	}
+
+	
+
+	// ��������
+	@RequestMapping(value = "/zd_mb_car", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView zd_mb_car(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("zd_mb_car");
+		return mav;
+	}
+
+	// ����չʾ
+	@RequestMapping(value = "/bigtables", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtables(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bigtables");
+		return mav;
+	}
+
+	@RequestMapping(value = "/bigtables2", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtables2(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bigtables2");
+		return mav;
+	}
+
+	@RequestMapping(value = "/bigtables3", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtables3(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bigtables3");
+		return mav;
+	}
+	@RequestMapping(value = "/bigtables4", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtables4(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bigtables4");
+		return mav;
+	}
+	
+	@RequestMapping(value = "/bigtables5", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView bigtables5(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/bigtables5");
+		return mav;
+	}
+	
+	@RequestMapping(value = "/getCarData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getCarData(HttpServletRequest request, HttpServletResponse response) throws SQLException, IOException {
+		Example example = new Example(NoteEntity.class);
+		example.setOrderByClause("cDate desc");
+			List<NoteEntity> list = noteService.selectByExample(example);
+			writeJSON(response, sdf.format(list.get(0).getcDate()));
+	}
+
+	// �豸����
+	@RequestMapping(value = "/zd_mb_equipment", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView zd_mb_equipment(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("zd_mb_equipment");
+		return mav;
+	}
+
+	@RequestMapping(value = "/getequipmentData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getequipmentData(HttpServletRequest request, HttpServletResponse response)
+			throws SQLException, IOException {
+		
+	Example example = new Example(DeviceErrorEntity.class);
+	example.setOrderByClause("cDate desc");
+		List<DeviceErrorEntity> list = deviceErrorService.selectByExample(example);
+		writeJSON(response, sdf.format(list.get(0).getcDate()));
+	}
+
+
+	// �����ϰ벿��
+	@RequestMapping(value = "/BIG", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView BIG(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/BIG");
+		return mav;
+	}
+
+	@RequestMapping(value = "/getBIGData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getBIGData(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Example example = new Example(PassEngerQuantityEntity.class);
+		example.setOrderByClause("cDate desc");
+			List<PassEngerQuantityEntity> list = passEngerQuantityService.selectByExample(example);
+			writeJSON(response, sdf.format(list.get(0).getcDate()));
+		}
+
+	// �����°벿��
+	@RequestMapping(value = "/BIG2", method = { RequestMethod.POST, RequestMethod.GET })
+	public ModelAndView BIG2(HttpServletRequest request, HttpServletResponse response) {
+		ModelAndView mav = new ModelAndView("gis/BIG2");
+		return mav;
+	}
+
+	public String getURLDecoderString(String str) {
+		String result = "";
+		if (null == str) {
+			return "";
+		}
+		try {
+			result = java.net.URLDecoder.decode(str, ENCODE);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		System.out.println(result);
+		return result;
+	}
+
+	
+
+	/** 以下方法是根据路径跳转到页面 **/
+	@RequestMapping("/homepage")
+	public String homepage(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		return "sys/homepage";
+	}
+
+	@RequestMapping("/error404")
+	public String error404(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		return "sys/error404";
+	}
+
+	@RequestMapping("/error500")
+	public String error500(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		return "sys/error500";
+	}
+
+	/** 系统管理页面跳转 */
+	// 用户管理
+	@RequestMapping("/sysuser")
+	public String sysuser(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		System.out.println("sysuser");
+		return "sys/sysuser";
+	}
+
+	// 角色权限管理
+	@RequestMapping("/sysrolem")
+	public String role(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		return "sys/sysrolem";
+	}
+
+	// 菜单管理
+	@RequestMapping("/sysmenu")
+	public String authority(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		return "sys/sysmenu";
+	}
+    
+	// 菜单管理
+	@RequestMapping("/eamPosLine")
+	public String eamPosLine(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		return "sys/eamPosLine";
+	}
+
+	// 菜单管理
+	@RequestMapping("/eamPosition")
+	public String eamPosition(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		return "sys/eamPosition";
+	}
+
+	@Override
+	public void getColHidden(HttpServletRequest arg0, HttpServletResponse arg1) throws IOException {
+		// TODO Auto-generated method stub
+
+	}
+
+}

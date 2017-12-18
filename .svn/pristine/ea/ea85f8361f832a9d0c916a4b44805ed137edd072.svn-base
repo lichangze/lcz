@@ -1,0 +1,76 @@
+@CHARSET "UTF-8";
+
+.tittle {
+      text-align:center; /*设置水平居中*/
+      vertical-align:middle;/*设置垂直居中*/
+}
+.modal-title-color: {
+	background-color: #307ecc
+}
+
+.bmzy-table {
+	width: 100%;
+	max-width: 100%;
+	margin-bottom: 2px;
+}
+
+.bmzy-tab-content {
+	border: 1px solid #C5D0DC;
+	position: relative;
+}
+
+.bmzy-nav-bab {
+	padding-left: 12px;
+	padding-top: 2px;
+	background-color: #EFF3F8;
+	border: 1px solid #C5D0DC;
+	border-color: #C5D0DC;
+	border-bottom: 1px solid #ddd;
+    margin-bottom: 0 !important;
+    margin-left: 0;
+    position: relative;
+    top: 1px;
+    
+}
+
+.bmzy-form>input {
+	height: 30px;
+	padding: 5px 10px;
+	font-size: 12px;
+	line-height: 1.5;
+	border-radius: 3px;
+}
+
+.menuContent>ul.ztree {
+	margin-top: 10px;
+	border: 1px solid #617775;
+	background: #f0f6e4;
+	width: 220px;
+	height: 360px;
+	overflow-y: scroll;
+	overflow-x: auto;
+}
+
+.bmzy-inputtree{
+	display: none; 
+	position: absolute;
+	z-index: 100; 
+	width: 157px; 
+	height: 185px;
+	overflow: auto; 
+	background: ghostwhite
+}
+.bmzy-td-name{
+	background-color: #F9F9F9;
+	text-align:right;
+	vertical-align:middle !important;
+}
+.bmzy-td-group{
+	background-color: #eeeeee;
+	text-align:right;
+	vertical-align:middle !important;
+}
+/* .bmzy-modal-content{
+ 	margin-top:25%;
+ 	left:50%;
+} */

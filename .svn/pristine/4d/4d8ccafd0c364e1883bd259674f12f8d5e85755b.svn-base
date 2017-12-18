@@ -1,0 +1,17 @@
+
+
+jdbc.driver=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://192.168.251.248:3306/master?useUnicode=true&characterEncoding=utf-8&autoReconnect=true&allowMultiQueries=true
+jdbc.username=dbuser
+jdbc.password=1qaz@WSX
+
+
+jdbc.driver.logs=com.mysql.jdbc.Driver
+jdbc.url.logs=jdbc:mysql://localhost:3306/log?useUnicode=true&characterEncoding=utf-8&autoReconnect=true&allowMultiQueries=true
+jdbc.username.logs=root
+jdbc.password.logs=root
+
+
+#connection pool settings
+jdbc.pool.maxIdle=20
+jdbc.pool.maxActive=190
